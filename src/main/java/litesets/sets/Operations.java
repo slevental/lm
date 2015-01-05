@@ -1,4 +1,4 @@
-package litesets.intersection;
+package litesets.sets;
 
 import com.google.common.collect.*;
 
@@ -9,10 +9,10 @@ import static com.google.common.collect.Sets.intersection;
 /**
  * Created by Stas on 12/30/14.
  */
-public class Intersection {
+public class Operations {
     public static int THRESHOLD = 10000;
 
-    private Intersection() {
+    private Operations() {
     }
 
     public static <E extends Comparable> List<E> intersect(Collection<E> left, Collection<E> right, Comparator<E> cmp) {
