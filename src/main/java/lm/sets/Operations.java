@@ -1,4 +1,4 @@
-package litesets.sets;
+package lm.sets;
 
 import com.google.common.collect.*;
 
