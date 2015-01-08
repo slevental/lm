@@ -6,7 +6,11 @@ package lm.graph;
 public final class Graphes {
     private Graphes(){}
 
-    public static Graph newMemLListGraph(){
-        return new MemLListGraph(1);
+    public static Graph newAdjacencyListGraph(int size){
+        return new MemLListGraph(size);
+    }
+
+    public static GraphPredicate isAcyclic() {
+        return new GraphAcyclicPredicate();
     }
 }

@@ -1,10 +1,18 @@
 package lm.graph;
 
+import java.util.Set;
+
 /**
  * Created by Stas on 1/5/15.
  */
-public interface Graph<E> {
-    void edge(E from, E to);
+public interface Graph {
+    void addEdge(int from, int to);
 
-    boolean isEdge(E from, E to);
+    Set<Integer> getEdges(int from);
+
+    boolean hasEdge(int from, int to);
+
+    int vertexes();
+
+    int edges();
 }
