@@ -3,12 +3,11 @@ package lm.hash;
 import com.google.common.base.Stopwatch;
 import com.google.common.hash.HashFunction;
 import lm.bits.BigBitSet;
+import lm.compression.SimplyCompressedArray;
+import lm.compression.CompressionUtils;
 
 import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.common.hash.Hashing.murmur3_32;
@@ -24,9 +23,9 @@ public class CHD implements PerfectHashFunction {
 
     private final int len;
     private final int buckets;
-    private final int[] hashFunctions;
+    private final SimplyCompressedArray hashFunctions;
 
-    public CHD(int len, int buckets, int[] hashFunctions) {
+    public CHD(int len, int buckets, SimplyCompressedArray hashFunctions) {
         this.len = len;
         this.buckets = buckets;
         this.hashFunctions = hashFunctions;
@@ -37,7 +36,7 @@ public class CHD implements PerfectHashFunction {
     }
 
     public int hash(String in) {
-        return fnvHash(hashFunctions[fnvHash(0, in) % buckets], in) % len;
+        return hash(hashFunctions.get(hash(0, in) % buckets), in) % len;
     }
 
     @Override
@@ -66,7 +65,7 @@ public class CHD implements PerfectHashFunction {
             return this;
         }
 
-        public Builder verbose(){
+        public Builder verbose() {
             this.verbose = true;
             return this;
         }
@@ -81,7 +80,7 @@ public class CHD implements PerfectHashFunction {
             BigBitSet mapped = new BigBitSet(targetLen);
 
             for (String each : obj) {
-                int hashCode = fnvHash(0, each);
+                int hashCode = hash(0, each);
                 int bucketPos = hashCode % r;
                 Node bucket = buckets[bucketPos];
                 buckets[bucketPos] = new Node(bucket, each, bucket == null ? 1 : bucket.size + 1, bucketPos);
@@ -93,12 +92,12 @@ public class CHD implements PerfectHashFunction {
 
             Stopwatch s = Stopwatch.createStarted();
             int collisions = 0;
+            int maxD = 0;
 
             for (int i = 0; i < buckets.length; i++) {
                 Node node = buckets[i];
                 if (node == null) continue;
                 int d = 1;
-
 
                 if (this.verbose && i % 10000 == 0) {
                     System.out.println("Processed : "
@@ -121,7 +120,7 @@ public class CHD implements PerfectHashFunction {
                 int[] hashes = new int[node.size];
 
                 while (n != null) {
-                    int h = fnvHash(d, n.str) % targetLen;
+                    int h = hash(d, n.str) % targetLen;
                     if (!mapped.get(h) && !current.get(h)) {
                         hashes[n.size - 1] = h;
                         current.set(h);
@@ -135,11 +134,13 @@ public class CHD implements PerfectHashFunction {
                     n = n.next;
                 }
                 hashFunctions[node.original] = d;
+
+                maxD = Math.max(maxD, d);
                 for (int hash : hashes) {
                     mapped.set(hash);
                 }
             }
-            if (verbose){
+            if (verbose) {
                 System.out.println("Hash functions = " + hashFunctions.length);
                 Set<Object> func = new HashSet<>();
                 for (int each : hashFunctions) {
@@ -148,7 +149,11 @@ public class CHD implements PerfectHashFunction {
                 System.out.println("Unique hash functions = " + func.size());
             }
 
-            return new CHD(targetLen, this.buckets, hashFunctions);
+            SimplyCompressedArray arr = CompressionUtils.simpleCompression(hashFunctions);
+            if (verbose)
+                System.out.println("Compressed hash functions from " + (hashFunctions.length * 4)/1024 + "Kb to " + arr.size()/1024 + "Kb");
+
+            return new CHD(targetLen, this.buckets, arr);
         }
 
         static class Node {
@@ -163,16 +168,14 @@ public class CHD implements PerfectHashFunction {
                 this.size = size;
                 this.original = original;
             }
-
         }
     }
 
-    private static int fnvHash(int d, String hash) {
+    private static int hash(int d, String hash) {
         if (d == 0)
             return HASH_FUNCTION.hashString(hash, CHARSET).asInt() & 0x7fffffff;
         int base = 0x11FACE8D;
         return murmur3_32(d * base).hashString(hash, CHARSET).asInt() & 0x7fffffff;
     }
-
 
 }
