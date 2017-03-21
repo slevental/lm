@@ -6,6 +6,6 @@ POC implementation based on perfect hashing algorithms and fibonacci compression
 
 In case of Int32 data types used for hash values, probability of collision would be:
 
-  P(k) = 1 - exp(-k(k-1)*2^-33)
+    P(k) = 1 - exp(-k(k-1)*2^-33)
     
 Where k is number of ngram keys. 
